@@ -11,6 +11,7 @@ var router = express.Router();
 -게시글 목록 웹페이지 요청과 응답처리 라우팅 메소드 구현
 -호출 주소 : http://localhost:3000/article/list
 -호출 방식 : Get
+- 응답결과: 게시글 목록데이터를 기반으로한 게시글 목록 웹페이지 전달
 */
 router.get('/list', async(req,res)=>{
 
@@ -63,11 +64,12 @@ router.get('/create',async(req,res)=>{
    res.render('article/create.ejs');
 });
 
+
 /*
--신규 게시글 등록 웹페이에서 보내준 
+-신규 게시글 등록 웹페이지에서 보내준 
 -사용자가 입력/선택한 신규 게시글 데이터를 등록 처리 요청과 응답처리 라우팅 메소드 구현
 -호출 주소 : http://localhost:3000/article/create
--호출 방식 : Get
+-호출 방식 : Post
 -동작 결과 : 신규 게시글 DB등록 처리 후 특정 페이지로 이동 또는 특정 뷰 파일 제공
 ** 라우팅 주소와 요청 방식 2가지 동일해야 해당 라우팅 메소드가 호출되고 실행된다.
 */
@@ -109,6 +111,7 @@ router.post('/create',async(req,res)=>{
    res.redirect('/article/list');
    //**render는 view폴더를 기반으로해서 view 폴더 밑에서 시작하므로 /필요안함, redirect는 /필요
 });
+
 
 /*
 -기존 게시글을 수정한 사용자 폼에 대한 게시글 데이터 수정처리 요청과 응답처리 라우팅메소드
