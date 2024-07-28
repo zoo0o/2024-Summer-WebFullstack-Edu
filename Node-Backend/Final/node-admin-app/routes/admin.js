@@ -1,38 +1,39 @@
 var express = require('express');
 var router = express.Router();
 
-
-/* 
-- 관리자계정목록 웹페이지 요청과 응답처리 라우팅메소드
-- 요청주소: http://localhost:5001/admin/list
-- 요청방식: Get
-- 응답결과: admin/list.ejs 뷰페이지 반환
-*/
 router.get('/list', function(req, res, next) {
-    res.render('admin/list.ejs');
+    res.render('admin/list');
 });
 
-/* 
-- 관리자계정 신규등록 웹페이지 요청과 응답처리 라우팅메소드
-- 요청주소: http://localhost:5001/admin/create
-- 요청방식: Get
-- 응답결과: admin/create.ejs 뷰페이지 반환
-*/
 router.get('/create', function(req, res, next) {
-    res.render('admin/create.ejs');
+    res.render('admin/create');
 });
-
-/* 
-- 관리자계정 신규등록 웹페이지 요청과 응답처리 라우팅메소드
-- 요청주소: http://localhost:5001/admin/create
-- 요청방식: post
-- 응답결과: 목록페이지 이동
-*/
+  
 router.post('/create', function(req, res, next) {
-    //기능구현
+
+    const id = req.body.id;
+    const pw = req.body.pw;
+    const code = req.body.code;
+
     res.redirect('/admin/list');
 });
 
+router.post('/modify', function(req, res, next) {
+
+    const id = req.body.id;
+    const pw = req.body.pw;
+    const code = req.body.code;
+    
+    res.redirect('/admin/list');
+});
+
+router.get('/delete', function(req, res, next) {
+    res.redirect('/admin/list');
+});
+
+router.get('/modify/:id', function(req, res, next) {
+    res.render('admin/modify');
+});
 
 
 module.exports = router;
