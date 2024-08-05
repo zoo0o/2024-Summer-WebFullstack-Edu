@@ -4,17 +4,34 @@
 var express = require('express');
 var router = express.Router();
 
-//환경설정정보 구성하기
-require('dotenv').config();
-
-//사용자 암호 단방향 암호화 적용을 위해 encrypt.js 참조하기
+//사용자 암호 단방향 암호화 적용을 위해 encryptjs 참조하기
 var encrypt = require('bcryptjs');
 
-//JWT 토큰 생성을 위한 jsonwebtoken 패키지 참조하기
+//JWT 토큰 생성을 위한 jsonwebtoken 패키지 참조하기 
 const jwt = require('jsonwebtoken');
 
 //ORM db객체 참조하기 
 var db = require('../models/index');
+
+
+//파일업로드를 위한 multer객체 참조하기
+var multer = require('multer');
+
+
+//파일저장위치 지정
+var storage  = multer.diskStorage({ 
+    destination(req, file, cb) {
+      cb(null, 'public/upload/');
+    },
+    filename(req, file, cb) {
+      cb(null, `${Date.now()}__${file.originalname}`);
+    },
+});
+
+//일반 업로드처리 객체 생성
+var upload = multer({ storage: storage });
+
+
 
 /*
 - 신규 회원정보 등록처리 요청과 응답 라우팅메소드
@@ -40,8 +57,8 @@ router.post('/entry',async(req,res)=>{
         const password = req.body.password;
         const name = req.body.name;
 
-        //사용자 암호를 단방향 암호화 문자열로 반환하기
-        const encryptedPassword = await encrypt.hash(password,12);
+        //사용자암호를 단방향 암호화 문자열로 변환하기
+        const encryptedPassword  = await encrypt.hash(password,12);
 
         //Step2: member 회원테이블에 데이터를 등록한다.
         //등록할 데이터의 구조(속성명)는 member모델의 속성명을 기준으로 작성합니다.
@@ -82,59 +99,62 @@ router.post('/entry',async(req,res)=>{
 
 
 /*
-- 회원 로그인 요청과 응답 라우팅메소드
+- 회원 로그인 데이터 처리 요청과 응답 라우팅메소드
 - 호출주소: http://localhost:5000/api/member/login
 - 호출방식: Post
 - 응답결과: 사용자 메일/암호를 체크하고 JWT 사용자 인증토큰값을 프론트엔드로 반환한다.
 */
-router.post('/login', async(req,res)=>{
+router.post('/login',async(req,res)=>{
 
     let apiResult = {
-        code:400,
+        code:400, 
         data:null, 
         msg:""
     };
 
     try{
 
-        //STEP1: 프론트엔드에서 전달해주는 로그인 사용자의 메일주소/암호를 추출합니다.
+        //Step1: 프론트엔드에서 전달해주는 로그인 사용자의 메일주소/암호를 추출합니다.
         const email = req.body.email;
         const password = req.body.password;
 
-        //STEP2: 사용자 메일주소 존재여부를 체크합니다.
+        //Step2: 사용자 메일주소 존재여부를 체크합니다.
         const member = await db.Member.findOne({
             where:{email:email}
         });
 
         if(member){
-            //동일 메일주소가 존재하는 경우
-            //STEP3: 사용자 암호간 일치여부를 체크합니다.
+            //동일 메일주소가 존재하는 경우 
+            //Step3: 사용자 암호값 일치여부를 체크합니다.
             const compareResult = await encrypt.compare(password,member.member_password);
+            
             if(compareResult){
-            //암호가 일치하는 경우
-            //STEP4: 사용자 메일주소/암호가 일치하는 경우 현재 로그인 사용자의 주요정보를 JSON데이터로 생성합니다.
-            const tokenJsonData = {
-                member_id:member.member_id,
-                email:member.email,
-                name:member.name,
-                profile_img_path:member.profile_img_path
-            }
+                //암호가 일치하는경우
+                
+                //Step4: 사용자 메일주소/암호가 일치하는 경우 현재 로그인 사용자의 주요정보를 JSON데이터로 생성합니다.
+                const tokenJsonData = {
+                    member_id:member.member_id,
+                    email:member.email,
+                    name:member.name,
+                    profile_img_path:member.profile_img_path
+                };
 
+                //Step5: 인증된 사용자 json데이터를 JWT토큰내에 담아 JWT 토큰문자열을 생성합니다.
+                //jwt.sing('토큰에 저장할 json데이터',토큰화할때 사용하는 인증키값,옵션값(토큰유효기간설정,발급자))
+                const token = await jwt.sign(tokenJsonData,process.env.JWT_AUTH_KEY,{expiresIn:'24h',issuer:"CBNU"});
 
-            //STEP5: 인증된 사용자 JSON데이터를 JWT토큰 내에 담아 토큰무자열을 생성합니다. 
-            //jwt.sign('토큰에 저장할 JSON데이터', 토큰화);
-            const token = await jwt.sign(tokenJsonData,process.env.JWT_AUTH_KEY,{expiresIn:'24h', issuer:"CBNU"});
-
-            //STEP6: JWT토큰 문자열을 프론트엔드로 반환합니다. 
-            apiResult.code = 200;
-            apiResult.data = token;
-            apiResult.msg = "Ok";
+                //Step6: JWT토큰 문자열을 프론트엔드로 반환합니다
+                apiResult.code = 200;
+                apiResult.data = token;
+                apiResult.msg = "Ok";
 
             }else{
-            apiResult.code = 400;
-            apiResult.data = null;
-            apiResult.msg = "InCorrectPasword";
+                //암호가 틀린경우 
+                apiResult.code = 400;
+                apiResult.data = null;
+                apiResult.msg = "InCorrectPasword";
             }
+
 
         }else{
             //메일주소가 존재하지 않은경우 프론트엔드로 결과값 바로 반환
@@ -143,44 +163,48 @@ router.post('/login', async(req,res)=>{
             apiResult.msg = "NotExistEmail";
         }
 
+
+
     }catch(err){
 
     }
 
-    res.json(apiResult)
+    res.json(apiResult);
+
 });
 
 
 /*
-- 현재 로그인한 사용자의 상세 프로필 정보를 DB에서 조회하여 반환하는 라우팅 메소드
+- 현재 로그인한 사용자의 상세 프로필 정보를 DB에서 조회하여 반환하는 라우팅메소드
 - 호출주소: http://localhost:5000/api/member/profile
 - 호출방식: Get
 - 응답결과: 프론트엔드에서 제공한 JWT토큰값을 전달받아 해당 사용자 메일주소로 DB에서 조회한 결과값 반환
 */
-router.get('/profile', async(req,res)=>{
-    
+router.get('/profile',async(req,res)=>{
+
     let apiResult = {
-        code:400,
+        code:400, 
         data:null, 
         msg:""
     };
-    
-    try{
-        //STEP1: 웹브라우저(헤더)에서 JWT토큰 값을 추출합니다.
-        var token = req.header.authorization.split('Bearer ')[1];
 
-        //STEP2: JWT 토큰 문자열 내에서 인증사용자 JSON 데이터를 추출합니다.
-        //jwt.verify('토큰문자열', 토큰생성시사용한 인증키값) 실행후 토큰 내 json data를 반화함
+    try{
+        //Step1: 웹브라우저(헤더)에서 JWT토큰 값을 추출합니다.
+        //웹브라우저에서 전달되는 토큰값 예시: "Bearer dfkdjfkdjfkjdfkjdkfjdk"
+        var token = req.headers.authorization.split('Bearer ')[1];
+
+        //Step2: JWT 토큰 문자열내에서 인증사용자 JSON 데이터를 추출합니다.
+        //jwt.verify('토큰문자열',토큰생성시사용한 인증키값) 실행후 토큰내 저장된 json data를 반환함.
         var loginMemberData = await jwt.verify(token,process.env.JWT_AUTH_KEY);
 
-        //STEP3: 토큰 페이로드 영역에서 추출한 현재 로그인한 사용자 고유번호를 기준으로 DB에서 단일사용자 조회
+        //Step3: 토큰 페이로드 영역에서 추출한 현재 로그인 사용자 고유번호를 기준으로 DB에서 단일사용자 조회
         var dbMember = await db.Member.findOne({
-            wher:{ member_id : loginMemberData.member_id}
+            where:{ member_id : loginMemberData.member_id}
         });
 
-        dbMember.member_password="";  //굳이 사용자 암호값을 프론트에 전달할 필요없음.. 보안상..
+        dbMember.member_password = ""; //굳이 사용자 암호값을 프론트에 전달할 필요없음..보안상..
 
-        //STEP4: 단일 사용자 정보를 프론트엔드로 전달합니다.
+        //Step4: 단일 사용자 정보를 프론트엔드로 전달합니다.
         apiResult.code = 200;
         apiResult.data = dbMember;
         apiResult.msg = "Ok";
@@ -191,7 +215,61 @@ router.get('/profile', async(req,res)=>{
         apiResult.msg = "Server Error";
     }
 
+
     res.json(apiResult);
 });
+
+
+
+/*
+- 사용자 프로필 사진 업로드 및 정보 처리 라우팅메소드
+- 호출주소: http://localhost:5000/api/member/profile/upload
+- 호출방식: Post
+- 응답결과: 프론트엔드에서 첨부한 이미지 파일을 업로드처리하고 업로드된 정보를 반환한다.
+*/
+router.post('/profile/upload',upload.single('file'),async(req,res)=>{
+
+    let apiResult = {
+        code:400, 
+        data:null, 
+        msg:""
+    };
+
+
+    try{
+
+        //Step1: 업로드된 파일 정보 추출하기 
+        const uploadFile = req.file;
+
+        //실제 서버에 업로드된 파일경로 
+        const filePath = `/upload/${uploadFile.filename}`;
+        const fileName = uploadFile.originalname;//서버에 업로드된 파일명(32243143422_a.png)
+        const fileSize = uploadFile.size;//파일크기
+        const mimeType = uploadFile.mimetype;//파일의 MIME타입
+
+        //파일정보를 DB에 저장하기
+        const file = {
+            filePath,
+            fileName,
+            fileSize,
+            mimeType
+        };
+
+        //Step2: 업로드된 파일정보 반환하기 
+        apiResult.code = 200;
+        apiResult.data = file;
+        apiResult.msg = "Ok";
+
+    }catch(err){
+        apiResult.code = 500;
+        apiResult.data = null;
+        apiResult.msg = "Failed";
+    }
+
+
+    res.json(apiResult);
+});
+
+
 
 module.exports = router;

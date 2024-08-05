@@ -7,13 +7,15 @@
 </head>
 <body>
     <h1>채팅방 기준 그룹 사용자간 채팅</h1>
-    STEP1:채팅방을 개설하고 닉네임을 입력하여 입장한다.<br/>
-    STEP2:채팅방에 사용자간 채팅을 진행한다.<br/><br/>
+    STEP1:채팅방을 개설하고 닉네임을 입력 입장한다<br/>
+    STEP2:채팅방에서 사용자간 채팅을 진행한다.<br/><br/>
 
     닉네임: <input type="text" id="nickname"/> <br/>
-    채팅방명: <input type="text" id="channel"/>
+    채팅방명:<input type="text" id="channel"/>
     <button id="btnEntry">입장</button>
-    <button id="btnExit">퇴장</button><br/><br/>
+    <button id="btnExit">퇴장</button>
+    <br/><br/>
+    
 
     메시지: <input type="text" id="message"/> <br/>
     <button id="btnSend">전송</button>
@@ -68,7 +70,7 @@
             $("#chatHistory").append(`<li>${serverMsg}</li>`);
         });
 
-
+        
         //그룹채팅 서버메시지 수신기 정의 
         socket.on('receiveChannel',function(serverMsg){
             //서버에서 보내준 메시지 문자열을 포함한 li태그를 하나만들고
@@ -76,7 +78,9 @@
             $("#chatHistory").append(`<li>${serverMsg}</li>`);
         });
 
-        //입장 버튼 클릭시 입력한 채팅방(채널)에 특정 닉네임으로 입장하기
+
+
+        //입장 버튼 클릭시 입력한 채팅방(채널)에 특정 닉네임으로 입장하기 
         $("#btnEntry").click(function(){
 
             //채널명과 닉네임을 UI요소에서 추출한다.
@@ -85,27 +89,34 @@
 
             //서버소켓의 entry라는 이벤트를 호출한다.
             //채널명과 대화명을 파라메터로 전달한다.
-            //socket.emit('서버 소켓 이벤트 수신기명', 전달할 데이터...);
+            //socket.emit('서버 소켓 이벤트 수신기명',전달할 데이터....);
             socket.emit('entry',channel,nickName);
-        });
 
-        //채팅방 입장 완료 후 입장 완료 메시지 수신기 기능 구현
-        socket.on('entryOk',function(entryMsg){
-            $("#chatHistory").append(`<li>${entryMsg}</li>`);
-        })
+        });
 
 
         //현재 채널(채팅방) 퇴장하기
         $("#btnExit").click(function(){
             const channel = $("#channel").val();
             const nickName = $("#nickname").val();
-            socket.emit('exit',channel,nickName)
+            socket.emit('exit',channel,nickName);
         });
 
-        //채팅방 퇴장완료 메시지 수신기
+        
+        //채팅방 퇴장완료 메시지 수신기 
         socket.on('exitOk',function(exitMsg){
             $("#chatHistory").append(`<li>${exitMsg}</li>`);
         });
+        
+
+
+        //채팅방 입장 완료후 입장완료 메시지 수신기 기능구현
+        socket.on('entryOk',function(entryMsg){
+            $("#chatHistory").append(`<li>${entryMsg}</li>`);
+        });
+
+
+
 
     </script>
 </body>
