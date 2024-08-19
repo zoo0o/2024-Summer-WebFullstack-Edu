@@ -1,15 +1,15 @@
 {
   "development": {
     "username": "root",
-    "password": "eddy524640!",
+    "password": "0509",
     "database": "edu_community",
     "host": "127.0.0.1",
     "dialect": "mysql",
-    "timezone":"+09:00"
+    "timezone": "+09:00"
   },
   "test": {
     "username": "root",
-    "password": "eddy524640!",
+    "password": "0509",
     "database": "edu_community",
     "host": "127.0.0.1",
     "dialect": "mysql",
@@ -17,7 +17,7 @@
   },
   "production": {
     "username": "root",
-    "password": "eddy524640!",
+    "password": "0509",
     "database": "edu_community",
     "host": "127.0.0.1",
     "dialect": "mysql",
