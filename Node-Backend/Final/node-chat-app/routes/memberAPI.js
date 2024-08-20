@@ -57,6 +57,18 @@ router.post('/entry',async(req,res)=>{
         const password = req.body.password;
         const name = req.body.name;
 
+        //Step1-1: 신규회원 메일 주소 중복 검사 처리하기
+        const existMember = await db.Member.findOne({where: {email:email}});
+
+        //동일한 메일 주소 사용자가 있는 경우 에러 처리 데이터 반환
+        if(existMember) {
+            apiResult.code = 400;
+            apiResult.data = null;
+            apiResult.msg = "ExistMember";
+
+            return res.json(apiResult);
+        }
+
         //사용자암호를 단방향 암호화 문자열로 변환하기
         const encryptedPassword  = await encrypt.hash(password,12);
 
