@@ -1,22 +1,20 @@
-// 신규 회원가입 페이지 컴포넌트
-// 호출주소 : http://localhost:3003/regist
+//신규회원가입 페이지 컴포넌트
+//호출주소 : http://localhost:3003/regist
 
-// 화면 상에 데이터 관리를 위한 useState 훅 참조하기
+//화면상에 데이터 관리를 위한 useState 훅 참조하기
 import { useState } from 'react';
 
-// 프론트엔드 라우팅 주소 이동 처리를 위한 useRouter 훅 참조하기
+//프론트엔드 라우팅 주소 이동처리를 위한 useRouter훅 참조하기
 import { useRouter } from 'next/router';
 
-// 신규회원 가입정보 인터페이스 타입 참조하기
+//신규회원 가입정보 인터페이스 타입 참조하기
 import { IEntryMember } from '@/interfaces/member';
 
-
-// 회원가입 페이지 컴포넌트
+//회원가입 페이지 컴포넌트
 const Regist = () => {
-
-  //useRouter 훅 객체 생성하기
+  //useRouter훅 객체 생성하기
   const router = useRouter();
-  
+
   //신규 회원가입 정보 상태 데이터 정의 및 값 초기화처리
   //useState(초기값설정) 함수는 [변수,변수값변경 세터함수] 배열을 반환한다.
   const [member, setMember] = useState<IEntryMember>({
@@ -49,7 +47,7 @@ const Regist = () => {
       //Step1) fetch()함수 호출하기
       const response = await fetch('http://localhost:5000/api/member/entry', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json' }, //프론트엔드에서 제공하는 데이터 타입의 유형을 지정필수
         body: JSON.stringify(member),
       });
 
@@ -59,12 +57,15 @@ const Regist = () => {
       if (result.code == 200) {
         console.log('백엔드에서 제공한 json데이터 확인:', result);
 
-        // 정상적으로 회원가입된 경우 로그인 페이지 컴포넌트로 이동처리
-        // router.push('이동시키고자 하는 프론트엔드 도메인 주소를 제외한 url 주소 정보');
+        //정상적으로 회원가입된 경우 로그인 페이지 컴포넌트로 이동처리
+        //router.push('이동시키고 하는 프론트엔드 도메인주소를 제외한 url주소정보');
         router.push('/login');
-
       } else {
         console.log('백엔드 서버 에러발생:', result.msg);
+        if (result.msg == 'ExistMember' && result.code == 400) {
+          alert('동일한 메일주소가 존재합니다.');
+          return false;
+        }
       }
     } catch (err) {
       console.error('백엔드 REST API호출중에 에러가 발생했습니다.');

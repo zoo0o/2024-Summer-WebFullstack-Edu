@@ -19,6 +19,8 @@ var usersRouter = require("./routes/users");
 //회원정보/게시글 관리 RESTful API 라우터파일 참조하기
 var memberAPIRouter = require("./routes/memberAPI");
 var articleAPIRouter = require("./routes/articleAPI");
+var openaiAPIRouter = require("./routes/openaiAPI");
+var channelAPIRouter = require("./routes/channelAPI");
 
 var app = express();
 
@@ -52,6 +54,8 @@ app.use("/users", usersRouter);
 //memberAPIRouter의 기본 호출주소 체계 정의하기
 app.use("/api/member", memberAPIRouter);
 app.use("/api/article", articleAPIRouter);
+app.use("/api/openai", openaiAPIRouter);
+app.use("/api/channel", channelAPIRouter);
 
 // catch 404 and forward to error handler
 app.use(function (req, res, next) {
