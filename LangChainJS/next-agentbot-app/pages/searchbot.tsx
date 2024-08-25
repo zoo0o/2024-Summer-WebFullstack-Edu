@@ -3,7 +3,7 @@ import { IMemberMessage, UserType } from "@/interfaces/message";
 
 import moment from "moment";
 
-const Bot = () => {
+const SearchBot = () => {
   //사용자 대화닉네임 상태값 정의
   const [nickName, setNickName] = useState<string>("");
 
@@ -11,7 +11,7 @@ const Bot = () => {
   const [message, setMessage] = useState<string>("");
 
   //챗봇과의 채팅이력 상태값 목록 정의 초기화
-  const [messageList, setMessageList] = useState<IMessage[]>([]);
+  const [messageList, setMessageList] = useState<IMemberMessage[]>([]);
 
   //메시지 전송 버튼 클릭시 메시지 백엔드 API 전송하기
   const messageSumbit = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -30,7 +30,7 @@ const Bot = () => {
     //백엔드에서 두번에 응답을 받아올수 없어서 그래용..
     setMessageList((prev) => [...prev, userMessage]);
 
-    const response = await fetch("/api/bot", {
+    const response = await fetch("/api/agent/searchbot", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -177,4 +177,4 @@ const Bot = () => {
   );
 };
 
-export default Bot;
+export default SearchBot;

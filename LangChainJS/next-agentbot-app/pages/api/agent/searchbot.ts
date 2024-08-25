@@ -1,10 +1,9 @@
 // 호출주소: http://localhost:3000/api/bot
-// 대화이력 기반 챗봇 구현하기
-// 기본적으로 LLM은 사용자와 챗봇간 대화이력데이터를 관리하지 않기 때문에
-// 대화중에 발생한 데이터에 대해 물어보면 모르는 상황이 발생합니다.
-// 랭체인/백엔드 영역에서 대화이력을 관리하고 해당 대화이력과 프롬프트를 LLM에게 전달해서
-// 대화 이력 기반 챗봇 구현이 가능함..
+// 검색엔진 Agent 사용하기
 import type { NextApiRequest, NextApiResponse } from "next";
+
+//검색엔진 서비스인 타빌리 Community Agent 객체 참조하기
+import { TavilySearchResults } from "@langchain/community/tools/tavily_search";
 
 //프론트엔드로 반환할 메시지 데이터 타입 참조하기
 import { IMemberMessage, UserType } from "@/interfaces/message";
@@ -67,58 +66,23 @@ export default async function handler(
         apiKey: process.env.OPENAI_API_KEY,
       });
 
-      //result = AIMessage{content:"챗봇응답메시지문자열",...}
-      //const result = await llm.invoke(prompt);
+      //Step3:타빌리 검색엔진 툴 기반 조회하기
+      const searchTool = new TavilySearchResults();
 
-      //챗봇에게 대화이력기반 채팅을 할것을 알려주고 대화이력정보를 챗봇 제공하며
-      //사용자메시지를 포함한 채팅전용 템플릿을 생성합니다.
-      const promptTemplate = ChatPromptTemplate.fromMessages([
-        ["system", "당신은 사용자와의 모든 대화이력을 기억합니다."],
-        ["placeholder", "{chat_history}"],
-        ["human", "{input}"],
-      ]);
+      //검색엔진 타빌리에 사용자 질문을 전달하고 응답값을 반환받습니다.
+      const searchResult = await searchTool.invoke(prompt);
 
-      //LLM OuptPutParser를 생성합니다.
-      const outputParser = new StringOutputParser();
+      //외부 Agent Tool을 사용하는 경우 반환값 타입을 정확히 확인해볼 필요가 있습니다.
+      console.log("Tavily SearchResult2222:", searchResult);
 
-      //llm 모델 체인 생성(llm기본작업)
-      const llmChain = promptTemplate.pipe(llm).pipe(outputParser);
-
-      //대화이력관리를 위한 체인생성(대화이력관리작업)
-      //RunnableWithMessageHistory({runnable:llm모델정보,getMessageHistory:()=>{지정된사용자의대화이력반환}},
-      //,inputMessagesKey:사용자입력프롬프트값전달,historyMessagesKey:지정된사용자의대화이력정보를 llm에게전달)
-      const historyChain = new RunnableWithMessageHistory({
-        runnable: llmChain,
-        getMessageHistory: async (sessionId) => {
-          //메모리 영역에 해당 세션 아이디 사용자의 대화이력이 없으면 대화이력 관리 객체를 생성해준다.
-          if (messageHistories[sessionId] == undefined) {
-            messageHistories[sessionId] = new InMemoryChatMessageHistory();
-          }
-          return messageHistories[sessionId];
-        },
-        inputMessagesKey: "input",
-        historyMessagesKey: "chat_history",
-      });
-
-      //사용자 세션 아이디 값 구성하기
-      //현재 챗봇을 호출한 사용자 아이디값을 세션아이디로 설정해줍니다.
-      //추후 프론트엔드서 전달된 사용자아디값을 세션아이디 값으로 설정해주면 되세요..
-      const config = {
-        configurable: { sessionId: nickName },
-      };
-
-      //대화이력관리 기반 챗봇 llm 호출하기
-      //historyChain.invoke({input:사용자입력메시지프롬프트},config:현재접속한 사용자정보);
-      const resultMessage = await historyChain.invoke(
-        { input: prompt },
-        config
-      );
+      //타빌리 조회결과값은 JSON문자열 포맷으로 제공되므로 JSON객체로 변환해서 사용하면 편해요.
+      const result = JSON.parse(searchResult);
 
       //프론트엔드로 반환되는 메시지 데이터 생성하기
       const resultMsg: IMemberMessage = {
         user_type: UserType.BOT,
         nick_name: "bot",
-        message: resultMessage,
+        message: result[0].content,
         send_date: new Date(),
       };
 
@@ -127,9 +91,16 @@ export default async function handler(
       apiResult.msg = "Ok";
     }
   } catch (err) {
+    const resultMsg: IMemberMessage = {
+      user_type: UserType.BOT,
+      nick_name: "bot",
+      message: "조회결과가 존재하지 않거나 조회에 실패했습니다.",
+      send_date: new Date(),
+    };
+
     //Step2:API 호출결과 설정
     apiResult.code = 500;
-    apiResult.data = null;
+    apiResult.data = resultMsg;
     apiResult.msg = "Server Error Failed";
   }
 
